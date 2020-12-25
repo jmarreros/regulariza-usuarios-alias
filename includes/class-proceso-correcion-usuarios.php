@@ -11,9 +11,12 @@
  * @author 			jmarreros
  */
 class Proceso_Correccion_Usuarios {
+    // Cantidad de entradas que escribió el usuario como mínimo para filtrar y crear usuario
+    private $cantidad_entradas = 10;
 
 
-    // Función para limpiar datos iniciales
+
+    // Paso 1 --- Función para limpiar datos iniciales
     public function limpia_datos_iniciales(){
         global $wpdb;
 
@@ -39,7 +42,8 @@ class Proceso_Correccion_Usuarios {
         error_log($res);
     }
 
-    // Creamos la tabla temporal
+
+    // Paso 2 --- Creamos la tabla temporal
     public function crear_tabla_temporal(){
         global $wpdb;
 
@@ -76,7 +80,157 @@ class Proceso_Correccion_Usuarios {
         error_log($res);
 
     }
+    // Paso 2 --- Actualizamos los datos de username y correo en tabla temporal
+    public function completar_datos_tabla_temporal(){
+        global $wpdb;
+        $table_name = 'wp_tmp_alias';
+
+        $items = $wpdb->get_results("SELECT * FROM `$table_name`");
+
+        // Llenamos el nombre de usuario y el correo
+        foreach($items as $item){
+            if ( ! $item->alias ) continue;
+
+            $username = sanitize_user($item->alias, true);
+            $username = wordwrap($username, 60);
+            $username = str_replace('. Diana', 'Diana', $username);
+
+            $email = 'a'.md5(substr($username,0, 12).random_int(1,10000)).'@asturbullatmp.org';
+
+            $sql = $wpdb->prepare("UPDATE $table_name SET
+                                    username = '%s',
+                                    email = '%s'
+                                    WHERE id = '%s'",
+                                    $username, $email, $item->id);
+
+            $result = $wpdb->query($sql);
+
+            if ( ! $result ) {
+                error_log("No se ejecutó: ". $item->id);
+            }
+        }
+    }
 
 
+
+    // Paso 3 ---  Creación de usuarios WordPress
+    public function creacion_usuarios(){
+        global $wpdb;
+        $table_name = 'wp_tmp_alias';
+
+        $items = $wpdb->get_results("select id, alias, username, email from `$table_name` where username <>'' and conteo >= $this->cantidad_entradas");
+
+        foreach( $items as $item ){
+            $username = $item->username;
+            $id_user = username_exists( $username ) ;
+
+            if ( ! $id_user ){
+
+                $pass = md5(substr($username,0, 6).random_int(1,10));
+
+                $user_data = [
+                    'user_pass'             => $pass,
+                    'user_login'            => $item->username,
+                    'user_nicename'         => sanitize_title($username),
+                    'user_email'            => $item->email,
+                    'display_name'          => $item->alias,
+                    'nickname'              => $item->alias,
+                    'role'                  => 'author',
+                ];
+
+                $id_user = wp_insert_user($user_data);
+
+                if ( $id_user ){
+                    error_log("✅ Usuario insertado: ". $id_user);
+                    // Actualizamos la tabla temporal
+                    $this->update_tmp_table($id_user, $item->id);
+
+                } else {
+                    error_log("⛔ No se pudo insertar ". $item->username);
+                }
+
+            } else {
+
+                error_log("El usuario $username ya existe");
+                // Actualizamos la tabla temporal
+                $this->update_tmp_table($id_user, $item->id);
+
+            }
+        }
+
+        // Usuarios con el mismo username en la tabla temporal
+        $this->regulariza_usuarios_iguales();
+    }
+
+    // Paso 4 --- Relaciona entrada con usuario
+    public function regulariza_entrada_usuario(){
+        // TODO: completar la relación de entradas y usuarios
+
+        $sql = "SELECT alias, id_user FROM wp_tmp_alias WHERE id_user > 0";
+
+
+
+
+        error_log(print_r('Aqui vamos a relacionar entrada usuario 🔥',true));
+    }
+
+    // Función auxiliar de creación de usuarios
+    private function update_tmp_table($id_user, $id_tmp){
+        global $wpdb;
+        $table_name = 'wp_tmp_alias';
+
+        // Actualizamos el ID en la tabla wp_tmp_alias
+        $sql = $wpdb->prepare("UPDATE $table_name SET
+        id_user = %d
+        WHERE id = %d",
+        $id_user, $id_tmp);
+
+        $result = $wpdb->query($sql);
+        if ( ! $result ) error_log("🤦‍♂️ hubo un error al actualizar $table_name !!");
+    }
+
+    // Completamos para los usernames iguales el mismo id de usuario de WordPress en la tabla temporal
+    private function regulariza_usuarios_iguales(){
+        global $wpdb;
+        $table_users = 'wp_users';
+        $table_name = 'wp_tmp_alias';
+
+        $items = $wpdb->get_results("
+            SELECT id as id_user, user_login FROM $table_users WHERE user_login IN (
+            SELECT username from $table_name GROUP BY username HAVING count(username) > 1 and sum(id_user) > 0
+            )");
+
+        foreach( $items as $item ){
+            $sql = $wpdb->prepare("UPDATE $table_name
+                                    SET id_user = %d
+                                    WHERE username = '%s'",
+                                    $item->id_user, $item->user_login);
+            $result = $wpdb->query($sql);
+            if ( ! $result ) error_log("cantidad de filas: $result, al actualizar $table_name !! con: $item->user_login");
+        }
+    }
 
 }
+
+
+    // // Paso 3-1 Eliminación de usuarios, proceso opcional
+    // public function eliminar_usuarios(){
+    //     global $wpdb;
+    //     $table_name = 'wp_tmp_alias';
+
+    //     $items = $wpdb->get_results("select id, alias, username, email from `$table_name` where username <>'' and conteo >= $this->cantidad_entradas");
+
+    //     error_log("⛔ NO ESTA HABILITADO Eliminación de usuarios 🙍");
+
+    //     // foreach( $items as $item ){
+    //     //     $username = $item->username;
+    //     //     $id_user = username_exists( $username ) ;
+
+    //     //     if (wp_delete_user($id_user) ){
+    //     //         error_log('✅ Eliminado '. $id_user);
+    //     //     } else{
+    //     //         error_log('⚠️ Error '.$id_user);
+    //     //     }
+    //     // }
+
+    // }

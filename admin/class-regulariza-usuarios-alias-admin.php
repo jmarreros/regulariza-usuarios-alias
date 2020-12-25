@@ -40,9 +40,11 @@ class Regulariza_Usuarios_Alias_Admin {
 	 * @var      string    $version    The current version of this plugin.
 	 */
 	private $version;
-
+	private $regulariza;
 
 	public function __construct( $plugin_name, $version ) {
+
+		$this->regulariza = new Proceso_Correccion_Usuarios();
 
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
@@ -61,29 +63,38 @@ class Regulariza_Usuarios_Alias_Admin {
 	}
 
 
+	// Paso 1 --- Limpieza de datos iniciales en wp_options
 	public function dcms_regulariza_usuarios_form_1(){
-		$regulariza = new Proceso_Correccion_Usuarios();
-		$regulariza->limpia_datos_iniciales();
+
+		$this->regulariza->limpia_datos_iniciales();
 		wp_redirect(admin_url('/admin.php?page=regulariza-usuarios&paso=1'));
 	}
 
-
+	// Paso 2 ---  Creación de tabla tempora y llenado de datos iniciales
 	public function dcms_regulariza_usuarios_form_2(){
-		$regulariza = new Proceso_Correccion_Usuarios();
-		$regulariza->crear_tabla_temporal();
+
+		$this->regulariza->crear_tabla_temporal();
+		$this->regulariza->completar_datos_tabla_temporal();
+
 		wp_redirect(admin_url('/admin.php?page=regulariza-usuarios&paso=2'));
 	}
 
-
+	// Paso 3 --- Creacion de usuarios
 	public function dcms_regulariza_usuarios_form_3(){
-		error_log(print_r('Entro paso 1',true));
+		$this->regulariza->creacion_usuarios();
 		wp_redirect(admin_url('/admin.php?page=regulariza-usuarios&paso=3'));
 	}
 
+	// Paso 4 --- Relacionar usuarios con la entrada
 	public function dcms_regulariza_usuarios_form_4(){
-		error_log(print_r('Entro paso 1',true));
+		$this->regulariza->regulariza_entrada_usuario();
 		wp_redirect(admin_url('/admin.php?page=regulariza-usuarios&paso=4'));
 	}
+
+
+
+
+
 
 	// Muestra la opción de menú de regularización de usuarios
 	public function dcms_regulariza_usuarios(){
@@ -100,3 +111,12 @@ class Regulariza_Usuarios_Alias_Admin {
 	}
 
 }
+
+
+
+	// // Paso 3-1 ---Eliminacion de usuarios
+	// public function dcms_regulariza_usuarios_form_3_1(){
+	// 	$this->regulariza->eliminar_usuarios();
+	// 	wp_redirect(admin_url('/admin.php?page=regulariza-usuarios&paso=3_1'));
+	// }
+

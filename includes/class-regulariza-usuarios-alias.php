@@ -166,7 +166,14 @@ class Regulariza_Usuarios_Alias {
 		$this->loader->add_action( 'admin_post_process_form_3', $plugin_admin, 'dcms_regulariza_usuarios_form_3' );
 		$this->loader->add_action( 'admin_post_process_form_4', $plugin_admin, 'dcms_regulariza_usuarios_form_4' );
 
+
+		// $this->loader->add_action( 'admin_post_process_form_3_1', $plugin_admin, 'dcms_regulariza_usuarios_form_3_1' );
 	}
+
+
+
+
+
 
 	/**
 	 * Register all of the hooks related to the public-facing functionality

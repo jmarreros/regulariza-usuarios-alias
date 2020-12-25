@@ -27,6 +27,7 @@ if ( isset($_GET['paso']) ){
 }
 ?>
 
+<!-- Paso 1 -- Limpieza de tablas  -->
 <form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
     <label for="">Corrección de tablas wp_options fuente</label>
     <br>
@@ -37,6 +38,7 @@ if ( isset($_GET['paso']) ){
 <br>
 <hr>
 
+<!-- Paso 2 -- Creación de tabla temporal  y llenado de datos complementarios -->
 <form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
     <label for="">Creación y llenado de tabla temporal</label>
     <br>
@@ -48,6 +50,7 @@ if ( isset($_GET['paso']) ){
 <br>
 <hr>
 
+<!-- Paso 3 -- Creación de usuarios  -->
 <form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
     <label for="">Creación usuarios WordPress</label>
     <br>
@@ -55,34 +58,39 @@ if ( isset($_GET['paso']) ){
 	<input type="hidden" name="action" value="process_form_3">
 	<input class="button button-primary" type="submit" name="submit" value="Paso 3">
 </form>
-
 <br>
 <hr>
+
+
+<!-- Paso 3_1 -- Eliminacion de usuarios
 <form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
-    <label for="">Borrado usuarios WordPress</label>
+    <label for="">Eliminación de Usuarios</label>
     <br>
     <br>
 	<input type="hidden" name="action" value="process_form_3_1">
 	<input class="button button-secondary" type="submit" name="submit" value="Paso 3_1">
 </form>
-
 <br>
 <hr>
+-->
+
+<!-- Paso 3 -- Creación de usuarios  -->
 <form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
-    <label for="">Regularizacion Usuarios iguales</label>
+    <label for="">Relacionar usuarios con entradas</label>
     <br>
     <br>
 	<input type="hidden" name="action" value="process_form_4">
 	<input class="button button-primary" type="submit" name="submit" value="Paso 4">
 </form>
 
+
 <br>
 <hr>
-<form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
+<!-- <form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
     <label for="">Actualización de las entradas</label>
     <br>
     <br>
 	<input type="hidden" name="action" value="process_form_5">
 	<input class="button button-primary" type="submit" name="submit" value="Paso 5">
-</form>
+</form> -->
 
