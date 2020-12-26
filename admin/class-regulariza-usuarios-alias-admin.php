@@ -92,7 +92,10 @@ class Regulariza_Usuarios_Alias_Admin {
 	}
 
 
-
+	// BATCH
+	public function dcms_regulariza_usuarios_form_5(){
+		wp_redirect(admin_url('/admin.php?page=regulariza-usuarios&paso=5'));
+	}
 
 
 

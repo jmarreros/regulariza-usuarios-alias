@@ -9,4 +9,5 @@ License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 == Description ==
-Cambia los alias de una entrada creando usuarios y asignándolos
+Cambia los alias de una entradas de WordPress creando en us lugar usuarios y asignándolos.
+Los datos del alias estan en la taba wp_postmeta.

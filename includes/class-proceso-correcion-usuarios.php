@@ -164,14 +164,26 @@ class Proceso_Correccion_Usuarios {
 
     // Paso 4 --- Relaciona entrada con usuario
     public function regulariza_entrada_usuario(){
-        // TODO: completar la relación de entradas y usuarios
+        global $wpdb;
+        $table_name = 'wp_tmp_alias';
 
-        $sql = "SELECT alias, id_user FROM wp_tmp_alias WHERE id_user > 0";
+        // Recuperamos los usuarios que tienen
+        $sql = "SELECT alias, id_user FROM $table_name WHERE id_user > 0";
+        $items = $wpdb->get_results($sql);
 
+        foreach( $items as $item ){
 
+            // $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = %d WHERE id in
+            //         (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')", $item->id_user ,$item->alias);
 
+            $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = 1 WHERE id in
+                    (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')", $item->alias);
 
-        error_log(print_r('Aqui vamos a relacionar entrada usuario 🔥',true));
+            $res = $wpdb->query($sql);
+
+            error_log("Se actualizaron $res en " . $item->id_user . " - " . $item->alias);
+        }
+
     }
 
     // Función auxiliar de creación de usuarios

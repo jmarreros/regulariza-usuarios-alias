@@ -86,11 +86,12 @@ if ( isset($_GET['paso']) ){
 
 <br>
 <hr>
-<!-- <form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
-    <label for="">Actualización de las entradas</label>
+<h2>Batch Process</h2>
+<form method="post" action="<?php echo admin_url( 'admin-post.php' ) ?>" >
+    <label for="">Proceso final de actualización por batch</label>
     <br>
     <br>
 	<input type="hidden" name="action" value="process_form_5">
 	<input class="button button-primary" type="submit" name="submit" value="Paso 5">
-</form> -->
+</form>
 
