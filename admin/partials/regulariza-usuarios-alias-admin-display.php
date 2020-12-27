@@ -11,6 +11,9 @@
  * @package    Regulariza_Usuarios_Alias
  * @subpackage Regulariza_Usuarios_Alias/admin/partials
  */
+
+ include_once PLUGIN_DIR .'/includes/class-proceso-correcion-usuarios.php';
+
 ?>
 
 <!-- This file should primarily consist of HTML with a little bit of PHP. -->
@@ -25,6 +28,55 @@ if ( isset($_GET['paso']) ){
 		echo "<p><strong> ⛔ Hubo un error </strong></p><br>";
 	}
 }
+
+// Batch Process
+$per_batch = 50;
+$step    = isset( $_GET['step'] )  ? absint( $_GET['step'] )  : 1;
+$total   = isset( $_GET['total'] ) ? absint( $_GET['total'] ) : false;
+$passed = round( ( ($step - 1) * $per_batch ), 0 );
+
+if ( isset($_GET['paso']) && $_GET['paso'] == '5' ):
+?>
+<div class="wrap">
+		<div id="dcms-processing">
+			<p>El proceso a comenzado</p>
+			<?php if( ! empty( $total ) ) : ?>
+				<p><strong>Estamos en el step batch : <?php echo $step ?> y total <?php echo $total?></strong></p>
+			<?php endif; ?>
+		</div>
+		<script type="text/javascript">
+
+            <?php
+                if ( ! $total ){
+                    $regulariza = new Proceso_Correccion_Usuarios();
+                    $total = $regulariza->batch_get_total();
+                    error_log(print_r("El Total: ".$total,true));
+                }
+            ?>
+            document.location.href = "/wp-admin/admin.php?page=regulariza-usuarios&action=processing&step<?php echo $step; ?>&total=<?php echo $total; ?>";
+		</script>
+	</div>
+
+<?php
+endif;
+
+if( isset( $_GET['action'] ) && 'processing' == $_GET['action'] ) {
+    echo "<h2>Procesando...".$step."</h2>";
+
+    if ( $passed <= $total ){
+
+        $regulariza = new Proceso_Correccion_Usuarios();
+        $regulariza->batch_regulariza_entrada_usuario($step, $per_batch);
+
+        error_log("Estamos en el paso ".$step);
+        $step++;
+        wp_redirect( admin_url( 'admin.php?page=regulariza-usuarios&action=processing&step='.$step.'&total='.$total) ); exit;
+    } else {
+        wp_redirect( admin_url( 'admin.php?page=regulariza-usuarios&mgs=completado') ); exit;
+    }
+}
+
+
 ?>
 
 <!-- Paso 1 -- Limpieza de tablas  -->

@@ -176,8 +176,8 @@ class Proceso_Correccion_Usuarios {
             // $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = %d WHERE id in
             //         (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')", $item->id_user ,$item->alias);
 
-            $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = 1 WHERE id in
-                    (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')", $item->alias);
+            $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = %d WHERE id in
+                    (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')", $item->id_user, $item->alias);
 
             $res = $wpdb->query($sql);
 
@@ -222,7 +222,50 @@ class Proceso_Correccion_Usuarios {
         }
     }
 
+
+    // Proceso en Batch
+    public function batch_regulariza_entrada_usuario($step, $number){
+        global $wpdb;
+
+        $table_users = 'wp_users';
+        $table_name = 'wp_tmp_alias';
+
+        $limit = ($step-1)*$number;
+
+        $sql = "SELECT alias, id_user FROM $table_name WHERE id_user > 0 LIMIT $limit, $number";
+        $items = $wpdb->get_results($sql);
+
+        foreach( $items as $item ){
+
+            $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = %d WHERE id in
+                    (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')",  $item->id_user, $item->alias);
+
+            $res = $wpdb->query($sql);
+
+            error_log("Se actualizaron $res en " . $item->id_user . " - " . $item->alias);
+        }
+
+    }
+
+    // Funcion auxiliar para obtener el total
+    public function batch_get_total(){
+        global $wpdb;
+        $table_name = 'wp_tmp_alias';
+
+        $sql = "SELECT COUNT(*) as total FROM $table_name WHERE id_user > 0";
+        $count = $wpdb->get_var($sql);
+
+        return $count;
+    }
+
 }
+
+
+
+
+
+
+
 
 
     // // Paso 3-1 Eliminación de usuarios, proceso opcional
