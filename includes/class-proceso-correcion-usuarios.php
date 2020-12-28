@@ -92,7 +92,9 @@ class Proceso_Correccion_Usuarios {
             if ( ! $item->alias ) continue;
 
             $username = sanitize_user($item->alias, true);
-            $username = wordwrap($username, 60);
+            $username = substr($username, 0, 42);
+            $username = preg_replace('/[\s\t\n]/', ' ', $username);
+
             $username = str_replace('. Diana', 'Diana', $username);
 
             $email = 'a'.md5(substr($username,0, 12).random_int(1,10000)).'@asturbullatmp.org';
@@ -115,48 +117,48 @@ class Proceso_Correccion_Usuarios {
 
     // Paso 3 ---  Creación de usuarios WordPress
     public function creacion_usuarios(){
-        global $wpdb;
-        $table_name = 'wp_tmp_alias';
+        // global $wpdb;
+        // $table_name = 'wp_tmp_alias';
 
-        $items = $wpdb->get_results("select id, alias, username, email from `$table_name` where username <>'' and conteo >= $this->cantidad_entradas");
+        // $items = $wpdb->get_results("select id, alias, username, email from `$table_name` where username <>'' and conteo >= $this->cantidad_entradas");
 
-        foreach( $items as $item ){
-            $username = $item->username;
-            $id_user = username_exists( $username ) ;
+        // foreach( $items as $item ){
+        //     $username = $item->username;
+        //     $id_user = username_exists( $username ) ;
 
-            if ( ! $id_user ){
+        //     if ( ! $id_user ){
 
-                $pass = md5(substr($username,0, 6).random_int(1,10));
+        //         $pass = md5(substr($username,0, 6).random_int(1,10));
 
-                $user_data = [
-                    'user_pass'             => $pass,
-                    'user_login'            => $item->username,
-                    'user_nicename'         => sanitize_title($username),
-                    'user_email'            => $item->email,
-                    'display_name'          => $item->alias,
-                    'nickname'              => $item->alias,
-                    'role'                  => 'author',
-                ];
+        //         $user_data = [
+        //             'user_pass'             => $pass,
+        //             'user_login'            => $item->username,
+        //             'user_nicename'         => sanitize_title($username),
+        //             'user_email'            => $item->email,
+        //             'display_name'          => $item->alias,
+        //             'nickname'              => $item->alias,
+        //             'role'                  => 'author',
+        //         ];
 
-                $id_user = wp_insert_user($user_data);
+        //         $id_user = wp_insert_user($user_data);
 
-                if ( $id_user ){
-                    error_log("✅ Usuario insertado: ". $id_user);
-                    // Actualizamos la tabla temporal
-                    $this->update_tmp_table($id_user, $item->id);
+        //         if ( $id_user ){
+        //             error_log("✅ Usuario insertado: ". $id_user);
+        //             // Actualizamos la tabla temporal
+        //             $this->update_tmp_table($id_user, $item->id);
 
-                } else {
-                    error_log("⛔ No se pudo insertar ". $item->username);
-                }
+        //         } else {
+        //             error_log("⛔ No se pudo insertar ". $item->username);
+        //         }
 
-            } else {
+        //     } else {
 
-                error_log("El usuario $username ya existe");
-                // Actualizamos la tabla temporal
-                $this->update_tmp_table($id_user, $item->id);
+        //         error_log("El usuario $username ya existe");
+        //         // Actualizamos la tabla temporal
+        //         $this->update_tmp_table($id_user, $item->id);
 
-            }
-        }
+        //     }
+        // }
 
         // Usuarios con el mismo username en la tabla temporal
         $this->regulariza_usuarios_iguales();
@@ -222,6 +224,61 @@ class Proceso_Correccion_Usuarios {
         }
     }
 
+    // Proceso en Batch crear usuarios
+    public function batch_regulariza_crear_usuarios($step, $number){
+        global $wpdb;
+        $table_name = 'wp_tmp_alias';
+
+        $limit = ($step-1)*$number;
+
+        $sql = "SELECT id, alias, username, email FROM `$table_name` WHERE username <>'' LIMIT $limit, $number";
+        $items = $wpdb->get_results($sql);
+
+        foreach( $items as $item ){
+            $username = $item->username;
+            $id_user = username_exists( $username ) ;
+
+            if ( ! $id_user ){
+
+                $pass = md5(substr($username,0, 6).random_int(1,10));
+
+                $user_data = [
+                    'user_pass'             => $pass,
+                    'user_login'            => $item->username,
+                    'user_nicename'         => sanitize_title($username),
+                    'user_email'            => $item->email,
+                    'display_name'          => $item->alias,
+                    'nickname'              => $item->alias,
+                    'role'                  => 'author',
+                ];
+
+                $id_user = wp_insert_user($user_data);
+
+                if ( $id_user ){
+                    if ( is_int($id_user) ){
+                        error_log("✅ Usuario insertado: ". $id_user);
+                        // Actualizamos la tabla temporal
+
+                        $this->update_tmp_table($id_user, $item->id);
+                    } else {
+                        error_log("🔥 Error al crear usuario : ". $item->username);
+                        error_log(print_r($id_user,true));
+                        break;
+                    }
+
+                } else {
+                    error_log("⛔ No se pudo insertarS". $item->username);
+                }
+
+            } else {
+
+                error_log("El usuario $username ya existe");
+                // Actualizamos la tabla temporal
+                $this->update_tmp_table($id_user, $item->id);
+
+            }
+        }
+    }
 
     // Proceso en Batch
     public function batch_regulariza_entrada_usuario($step, $number){
@@ -245,6 +302,17 @@ class Proceso_Correccion_Usuarios {
             error_log("Se actualizaron $res en " . $item->id_user . " - " . $item->alias);
         }
 
+    }
+
+    // Funcion auxiliar para obtener el total
+    public function batch_get_total_tmp_table(){
+        global $wpdb;
+        $table_name = 'wp_tmp_alias';
+
+        $sql = "SELECT COUNT(*) as total FROM $table_name";
+        $count = $wpdb->get_var($sql);
+
+        return $count;
     }
 
     // Funcion auxiliar para obtener el total

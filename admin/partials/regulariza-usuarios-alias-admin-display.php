@@ -30,7 +30,7 @@ if ( isset($_GET['paso']) ){
 }
 
 // Batch Process
-$per_batch = 50;
+$per_batch = 500;
 $step    = isset( $_GET['step'] )  ? absint( $_GET['step'] )  : 1;
 $total   = isset( $_GET['total'] ) ? absint( $_GET['total'] ) : false;
 $passed = round( ( ($step - 1) * $per_batch ), 0 );
@@ -49,11 +49,15 @@ if ( isset($_GET['paso']) && $_GET['paso'] == '5' ):
             <?php
                 if ( ! $total ){
                     $regulariza = new Proceso_Correccion_Usuarios();
-                    $total = $regulariza->batch_get_total();
+                    $total = $regulariza->batch_get_total_tmp_table();
+                    // $total = $regulariza->batch_get_total();
                     error_log(print_r("El Total: ".$total,true));
                 }
             ?>
-            document.location.href = "/wp-admin/admin.php?page=regulariza-usuarios&action=processing&step<?php echo $step; ?>&total=<?php echo $total; ?>";
+
+            setTimeout(() => {
+                    document.location.href = "/wp-admin/admin.php?page=regulariza-usuarios&action=processing&step<?php echo $step; ?>&total=<?php echo $total; ?>";
+            }, 1000);
 		</script>
 	</div>
 
@@ -66,7 +70,8 @@ if( isset( $_GET['action'] ) && 'processing' == $_GET['action'] ) {
     if ( $passed <= $total ){
 
         $regulariza = new Proceso_Correccion_Usuarios();
-        $regulariza->batch_regulariza_entrada_usuario($step, $per_batch);
+        $regulariza->batch_regulariza_crear_usuarios($step, $per_batch);
+        // $regulariza->batch_regulariza_entrada_usuario($step, $per_batch);
 
         error_log("Estamos en el paso ".$step);
         $step++;
