@@ -19,24 +19,25 @@ class Proceso_Correccion_Usuarios {
     // Paso 1 --- Función para limpiar datos iniciales
     public function limpia_datos_iniciales(){
         global $wpdb;
+        $table_meta = $wpdb->prefix.'postmeta';
 
-        $sql = "update wp_postmeta set meta_value = TRIM(meta_value)
+        $sql = "update $table_meta set meta_value = TRIM(meta_value)
         where meta_key = 'author_alias'";
         $res = $wpdb->query($sql);
         error_log($res);
 
-        $sql = "update wp_postmeta set meta_value = REPLACE(meta_value, '\n','')
+        $sql = "update $table_meta set meta_value = REPLACE(meta_value, '\n','')
         where meta_key = 'author_alias'";
         $res = $wpdb->query($sql);
         error_log($res);
 
-        $sql = "update wp_postmeta set meta_value = REPLACE(meta_value, '\r','')
+        $sql = "update $table_meta set meta_value = REPLACE(meta_value, '\r','')
         where meta_key = 'author_alias'";
         $res = $wpdb->query($sql);
         error_log($res);
 
 
-        $sql = "update wp_postmeta set meta_value = REPLACE(meta_value, '\t','')
+        $sql = "update $table_meta set meta_value = REPLACE(meta_value, '\t','')
         where meta_key = 'author_alias'";
         $res = $wpdb->query($sql);
         error_log($res);
@@ -46,13 +47,15 @@ class Proceso_Correccion_Usuarios {
     // Paso 2 --- Creamos la tabla temporal
     public function crear_tabla_temporal(){
         global $wpdb;
+        $table_tmp = $wpdb->prefix."tmp_alias";
+        $table_meta = $wpdb->prefix.'postmeta';
 
-        $sql = "DROP TABLE IF EXISTS wp_tmp_alias";
+        $sql = "DROP TABLE IF EXISTS $table_tmp";
         $res = $wpdb->query($sql);
         error_log($res);
 
         // Creación tabla temporal
-        $sql = "CREATE TABLE wp_tmp_alias(
+        $sql = "CREATE TABLE $table_tmp(
           id bigint(10) unsigned NOT NULL AUTO_INCREMENT,
           conteo int unsigned NOT NULL DEFAULT '0',
           alias varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
@@ -69,9 +72,9 @@ class Proceso_Correccion_Usuarios {
         error_log(print_r($res,true));
 
         // Llenado incial de datos alias en tabla temporal
-        $sql = "INSERT INTO wp_tmp_alias (alias, conteo)
+        $sql = "INSERT INTO $table_tmp (alias, conteo)
                 select distinct meta_value as nombre, count(meta_value) as conteo
-                from wp_postmeta
+                from $table_meta
                 where meta_key = 'author_alias'
                 group by meta_value
                 order by conteo asc, nombre asc";
@@ -83,7 +86,7 @@ class Proceso_Correccion_Usuarios {
     // Paso 2 --- Actualizamos los datos de username y correo en tabla temporal
     public function completar_datos_tabla_temporal(){
         global $wpdb;
-        $table_name = 'wp_tmp_alias';
+        $table_name = $wpdb->prefix."tmp_alias";
 
         $items = $wpdb->get_results("SELECT * FROM `$table_name`");
 
@@ -118,7 +121,7 @@ class Proceso_Correccion_Usuarios {
     // Paso 3 ---  Creación de usuarios WordPress
     public function creacion_usuarios(){
         // global $wpdb;
-        // $table_name = 'wp_tmp_alias';
+        // $table_name = $wpdb->prefix.'tmp_alias';
 
         // $items = $wpdb->get_results("select id, alias, username, email from `$table_name` where username <>'' and conteo >= $this->cantidad_entradas");
 
@@ -167,7 +170,9 @@ class Proceso_Correccion_Usuarios {
     // Paso 4 --- Relaciona entrada con usuario
     public function regulariza_entrada_usuario(){
         global $wpdb;
-        $table_name = 'wp_tmp_alias';
+        $table_name = $wpdb->prefix.'tmp_alias';
+        $table_post = $wpdb->prefix.'posts';
+        $table_meta = $wpdb->prefix.'postmeta';
 
         // Recuperamos los usuarios que tienen
         $sql = "SELECT alias, id_user FROM $table_name WHERE id_user > 0";
@@ -178,8 +183,8 @@ class Proceso_Correccion_Usuarios {
             // $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = %d WHERE id in
             //         (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')", $item->id_user ,$item->alias);
 
-            $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = %d WHERE id in
-                    (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')", $item->id_user, $item->alias);
+            $sql = $wpdb->prepare("UPDATE $table_post SET post_author = %d WHERE id in
+                    (SELECT post_id FROM $table_meta WHERE  meta_key = 'author_alias' AND meta_value = '%s')", $item->id_user, $item->alias);
 
             $res = $wpdb->query($sql);
 
@@ -191,7 +196,7 @@ class Proceso_Correccion_Usuarios {
     // Función auxiliar de creación de usuarios
     private function update_tmp_table($id_user, $id_tmp){
         global $wpdb;
-        $table_name = 'wp_tmp_alias';
+        $table_name = $wpdb->prefix."tmp_alias";;
 
         // Actualizamos el ID en la tabla wp_tmp_alias
         $sql = $wpdb->prepare("UPDATE $table_name SET
@@ -206,8 +211,8 @@ class Proceso_Correccion_Usuarios {
     // Completamos para los usernames iguales el mismo id de usuario de WordPress en la tabla temporal
     private function regulariza_usuarios_iguales(){
         global $wpdb;
-        $table_users = 'wp_users';
-        $table_name = 'wp_tmp_alias';
+        $table_users = $wpdb->prefix.'users';
+        $table_name = $wpdb->prefix."tmp_alias";
 
         $items = $wpdb->get_results("
             SELECT id as id_user, user_login FROM $table_users WHERE user_login IN (
@@ -227,7 +232,7 @@ class Proceso_Correccion_Usuarios {
     // Proceso en Batch crear usuarios
     public function batch_regulariza_crear_usuarios($step, $number){
         global $wpdb;
-        $table_name = 'wp_tmp_alias';
+        $table_name = $wpdb->prefix.'tmp_alias';
 
         $limit = ($step-1)*$number;
 
@@ -284,18 +289,21 @@ class Proceso_Correccion_Usuarios {
     public function batch_regulariza_entrada_usuario($step, $number){
         global $wpdb;
 
-        $table_users = 'wp_users';
-        $table_name = 'wp_tmp_alias';
+        $table_users = $wpdb->prefix.'users';
+        $table_name = $wpdb->prefix.'tmp_alias';
+        $table_post = $wpdb->prefix.'posts';
+        $table_meta = $wpdb->prefix.'postmeta';
 
         $limit = ($step-1)*$number;
 
-        $sql = "SELECT alias, id_user FROM $table_name WHERE id_user > 0 LIMIT $limit, $number";
+        // En dos partes los mayores o iguales a 10 y luego el resto
+        $sql = "SELECT alias, id_user FROM $table_name WHERE conteo < 10 and alias <> '' LIMIT $limit, $number";
         $items = $wpdb->get_results($sql);
 
         foreach( $items as $item ){
 
-            $sql = $wpdb->prepare("UPDATE wp_posts SET post_author = %d WHERE id in
-                    (SELECT post_id FROM wp_postmeta WHERE  meta_key = 'author_alias' AND meta_value = '%s')",  $item->id_user, $item->alias);
+            $sql = $wpdb->prepare("UPDATE $table_post SET post_author = %d WHERE id in
+                    (SELECT post_id FROM $table_meta WHERE  meta_key = 'author_alias' AND meta_value = '%s')",  $item->id_user, $item->alias);
 
             $res = $wpdb->query($sql);
 
@@ -307,7 +315,7 @@ class Proceso_Correccion_Usuarios {
     // Funcion auxiliar para obtener el total
     public function batch_get_total_tmp_table(){
         global $wpdb;
-        $table_name = 'wp_tmp_alias';
+        $table_name = $wpdb->prefix.'tmp_alias';
 
         $sql = "SELECT COUNT(*) as total FROM $table_name";
         $count = $wpdb->get_var($sql);
@@ -318,7 +326,7 @@ class Proceso_Correccion_Usuarios {
     // Funcion auxiliar para obtener el total
     public function batch_get_total(){
         global $wpdb;
-        $table_name = 'wp_tmp_alias';
+        $table_name = $wpdb->prefix.'tmp_alias';
 
         $sql = "SELECT COUNT(*) as total FROM $table_name WHERE id_user > 0";
         $count = $wpdb->get_var($sql);
@@ -339,7 +347,7 @@ class Proceso_Correccion_Usuarios {
     // // Paso 3-1 Eliminación de usuarios, proceso opcional
     // public function eliminar_usuarios(){
     //     global $wpdb;
-    //     $table_name = 'wp_tmp_alias';
+    //     $table_name = $wpdb->prefix.'tmp_alias';
 
     //     $items = $wpdb->get_results("select id, alias, username, email from `$table_name` where username <>'' and conteo >= $this->cantidad_entradas");
 

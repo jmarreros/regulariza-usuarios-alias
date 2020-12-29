@@ -20,6 +20,7 @@
 <h2>Regulariza los usuarios</h2>
 
 <?php
+
 if ( isset($_GET['paso']) ){
 	if ( $_GET['paso'] != '0'){
 		echo "<p><strong> ✅ Paso " . $_GET['paso']  ." completado </strong></p><br>";
@@ -55,9 +56,9 @@ if ( isset($_GET['paso']) && $_GET['paso'] == '5' ):
                 }
             ?>
 
-            setTimeout(() => {
-                    document.location.href = "/wp-admin/admin.php?page=regulariza-usuarios&action=processing&step<?php echo $step; ?>&total=<?php echo $total; ?>";
-            }, 1000);
+
+            document.location.href = "<?php echo home_url() ?>/wp-admin/admin.php?page=regulariza-usuarios&action=processing&step<?php echo $step; ?>&total=<?php echo $total; ?>";
+
 		</script>
 	</div>
 
